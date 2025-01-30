@@ -52,6 +52,11 @@ tokenized_datasets = sft_data.map(preprocess_function)
 
 print(tokenized_datasets["train"][0])
 
+# Split the dataset into training and validation sets
+train_test_split = tokenized_datasets["train"].train_test_split(test_size=0.1)
+train_dataset = train_test_split["train"]
+eval_dataset = train_test_split["test"]
+
 # Training arguments
 training_args = TrainingArguments(
     output_dir=OUTPUT_DIR,
@@ -63,13 +68,16 @@ training_args = TrainingArguments(
     logging_steps=10,
     save_total_limit=2,  # Save only the last 2 checkpoints
     push_to_hub=False,  # Set to True if you want to push to the Hugging Face Hub
+    evaluation_strategy="epoch",  # Evaluate at the end of each epoch
+    eval_steps=10,  # Evaluate every 10 steps
 )
 
 # Trainer
 trainer = Trainer(
     model=model,
     args=training_args,
-    train_dataset=tokenized_datasets["train"],
+    train_dataset=train_dataset,
+    eval_dataset=eval_dataset,
 )
 
 # Training
