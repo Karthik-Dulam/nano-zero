@@ -4,7 +4,7 @@ from datasets import Dataset, load_dataset
 import os
 
 # Hyperparameters
-MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct-1M"
+MODEL_NAME = "Qwen/Qwen2.5-Coder-1.5B-Instruct"
 DATASET_PATH = "sudoku_sft_data.json"
 OUTPUT_DIR = "sft_output"
 BATCH_SIZE = 8

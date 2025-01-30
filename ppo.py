@@ -6,7 +6,7 @@ import json
 import os
 
 # Hyperparameters
-MODEL_NAME = "tinyllama/TinyLlama-1.1B-intermediate-step-1431k-3T"
+MODEL_NAME = "Qwen/Qwen2.5-Coder-1.5B-Instruct"
 DATASET_PATH = "path/to/sudoku_dataset.json"
 NUM_EPOCHS = 100
 
