@@ -41,11 +41,7 @@ def calculate_reward(response: str, correct_answer: str) -> float:
 
 # Load dataset
 def format_prompt(puzzle: str) -> str:
-    return f"""Solve this Sudoku puzzle. Provide the completed 9x9 grid between <ans> and </ans> tags.
-    
-Puzzle:
-{puzzle}
-"""
+    return f"<instruction>Solve this Sudoku puzzle:\n{puzzle}</instruction>"
 
 dataset = Dataset.from_json(DATASET_PATH).map(lambda x: {
     "prompt": format_prompt(x["puzzle"]),

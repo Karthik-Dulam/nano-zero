@@ -21,14 +21,14 @@ def generate_sudoku_dataset(num_samples=1000, difficulty=0.5):
         solved = solution.board
         
         # Convert to 81-digit strings
-        puzzle_str = "".join(
-            " " + str(cell) if cell is not None else " 0" 
+        puzzle_str = " ".join(
+            str(cell or 0)
             for row in unsolved 
             for cell in row
         )
         
-        solution_str = "".join(
-            " " + str(cell) for row in solved for cell in row
+        solution_str = " ".join(
+            str(cell or 0) for row in solved for cell in row
         )
         
         dataset.append({

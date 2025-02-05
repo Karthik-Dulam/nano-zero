@@ -1,14 +1,14 @@
 import json
 from sudoku import Sudoku
 import numpy as np
+from tqdm import tqdm
 
-def generate_teaching_data(num_samples=1000, difficulty=0.1):
+def generate_teaching_data(num_samples=100_000, difficulty=0.1):
     """
     Generate Sudoku puzzles with alternating row/column checks
     """
     dataset = []
-    
-    for _ in range(num_samples):
+    for _ in tqdm(range(num_samples)):
         puzzle = Sudoku(3, seed=np.random.randint(1000)).difficulty(difficulty)
         unsolved = [[cell or 0 for cell in row] for row in puzzle.board]
         solution = puzzle.solve().board
@@ -103,8 +103,8 @@ def generate_teaching_data(num_samples=1000, difficulty=0.1):
                 break
 
         # Convert boards to strings
-        puzzle_str = "".join(map(str, puzzle_arr.flatten()))
-        solution_str = "".join(map(str, solution_arr.flatten()))
+        puzzle_str = " ".join(map(str, puzzle_arr.flatten()))
+        solution_str = " ".join(map(str, solution_arr.flatten()))
         
         # Format thinking text
         board_visual = "\n".join([" ".join(map(str, row)) for row in temp_board])
@@ -129,12 +129,12 @@ def generate_teaching_data(num_samples=1000, difficulty=0.1):
 
 if __name__ == "__main__":
     # Generate and save dataset
-    dataset = generate_teaching_data(num_samples=10_000, difficulty=0.2)
+    dataset = generate_teaching_data(num_samples=100_000, difficulty=0.2)
 
     # Save in instruction format
     instruction_dataset = [{
-        "instruction": f"Solve this Sudoku puzzle:\n{example['puzzle']}",
-        "input": "",
+        "instruction": f"Solve this Sudoku puzzle:",
+        "input": example['puzzle'],
         "output": example['output']
     } for example in dataset]
 
