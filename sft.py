@@ -46,9 +46,9 @@ def get_args():
     args = parser.parse_args()
     return args
 
-def get_model_and_tokenizer(model_name=MODEL_NAME):
+def get_model_and_tokenizer(model_name, checkpointing):
     model = AutoModelForCausalLM.from_pretrained(model_name)
-    if CHECKPOINTING:
+    if checkpointing:
         model.gradient_checkpointing_enable()
     model.config.use_cache = False
     tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -78,7 +78,7 @@ def preprocess_function(examples, tokenizer, output=True):
         return_attention_mask=False,
     )
 
-def prepare_dataloaders(tokenized_datasets, batch_size=BATCH_SIZE):
+def prepare_dataloaders(tokenized_datasets, batch_size):
     train_test_split = tokenized_datasets["train"].train_test_split(test_size=0.1)
     train_dataset = train_test_split["train"]
     eval_dataset = train_test_split["test"]
@@ -89,10 +89,11 @@ def prepare_dataloaders(tokenized_datasets, batch_size=BATCH_SIZE):
     return train_loader, eval_loader
 
 class SFTModel(pl.LightningModule):
-    def __init__(self, model, learning_rate):
+    def __init__(self, model, learning_rate, batch_size):
         super().__init__()
         self.model = model
         self.learning_rate = learning_rate
+        self.batch_size = batch_size
         self.automatic_optimization = True
 
     def training_step(self, batch, batch_idx):
@@ -104,7 +105,7 @@ class SFTModel(pl.LightningModule):
                  on_step=True, 
                  on_epoch=True, 
                  prog_bar=True,
-                 batch_size=BATCH_SIZE,
+                 batch_size=self.batch_size,
                  sync_dist=True)
         return loss
 
@@ -128,7 +129,7 @@ class SFTModel(pl.LightningModule):
                  on_step=False,
                  on_epoch=True,
                  prog_bar=True,
-                 batch_size=BATCH_SIZE,
+                 batch_size=self.batch_size,
                  sync_dist=True)
         return loss
 
@@ -180,7 +181,7 @@ if __name__ == '__main__':
     CHECKPOINTING = args.checkpointing
     
     # Initialize model and tokenizer
-    model, tokenizer = get_model_and_tokenizer()
+    model, tokenizer = get_model_and_tokenizer(MODEL_NAME, CHECKPOINTING)
     
     # Load and preprocess data
     sft_data = load_sft_data(DATASET_PATH)
@@ -197,7 +198,7 @@ if __name__ == '__main__':
     train_loader, eval_loader = prepare_dataloaders(tokenized_datasets, BATCH_SIZE)
     
     # Initialize the model and trainer
-    sft_model = SFTModel(model, LEARNING_RATE)
+    sft_model = SFTModel(model, LEARNING_RATE, BATCH_SIZE)
     trainer = get_trainer(args)
     
     # Train the model
