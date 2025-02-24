@@ -1,4 +1,8 @@
 .aider*
 .env
 __pycache__
-**.json
+*.json
+outputs
+rl_data
+tb_logs
+outputs

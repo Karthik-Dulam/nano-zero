@@ -32,8 +32,9 @@ def generate_teaching_data(num_samples=100_000, difficulty=0.1):
                     if np.count_nonzero(row == 0) == 1:
                         missing = 45 - row.sum()
                         j = np.where(row == 0)[0][0]
-                        steps.append(f"In row {i+1} the only missing element is {missing} so row {i+1} column {j+1} must be {missing}.")
                         temp_board[i][j] = missing
+                        board_state = "\n".join([" ".join(map(str, row)) for row in temp_board])
+                        steps.append(f"In row {i+1} the only missing element is {missing} so row {i+1} column {j+1} must be {missing}.\nCurrent board:\n{board_state}")
                         found = True
                         last_check = 'row'
                         break
@@ -44,8 +45,9 @@ def generate_teaching_data(num_samples=100_000, difficulty=0.1):
                         if np.count_nonzero(col == 0) == 1:
                             missing = 45 - col.sum()
                             i = np.where(col == 0)[0][0]
-                            steps.append(f"In column {j+1} the only missing element is {missing} so row {i+1} column {j+1} must be {missing}.")
                             temp_board[i][j] = missing
+                            board_state = "\n".join([" ".join(map(str, row)) for row in temp_board])
+                            steps.append(f"In column {j+1} the only missing element is {missing} so row {i+1} column {j+1} must be {missing}.\nCurrent board:\n{board_state}")
                             found = True
                             last_check = 'column'
                             break
@@ -56,8 +58,9 @@ def generate_teaching_data(num_samples=100_000, difficulty=0.1):
                     if np.count_nonzero(col == 0) == 1:
                         missing = 45 - col.sum()
                         i = np.where(col == 0)[0][0]
-                        steps.append(f"In column {j+1} the only missing element is {missing} so row {i+1} column {j+1} must be {missing}.")
                         temp_board[i][j] = missing
+                        board_state = "\n".join([" ".join(map(str, row)) for row in temp_board])
+                        steps.append(f"In column {j+1} the only missing element is {missing} so row {i+1} column {j+1} must be {missing}.\nCurrent board:\n{board_state}")
                         found = True
                         last_check = 'column'
                         break
@@ -68,8 +71,9 @@ def generate_teaching_data(num_samples=100_000, difficulty=0.1):
                         if np.count_nonzero(row == 0) == 1:
                             missing = 45 - row.sum()
                             j = np.where(row == 0)[0][0]
-                            steps.append(f"In row {i+1} the only missing element is {missing} so row {i+1} column {j+1} must be {missing}.")
                             temp_board[i][j] = missing
+                            board_state = "\n".join([" ".join(map(str, row)) for row in temp_board])
+                            steps.append(f"In row {i+1} the only missing element is {missing} so row {i+1} column {j+1} must be {missing}.\nCurrent board:\n{board_state}")
                             found = True
                             last_check = 'row'
                             break
@@ -92,8 +96,9 @@ def generate_teaching_data(num_samples=100_000, difficulty=0.1):
                         idx = np.where(block == 0)
                         i = block_i*3 + idx[0][0]
                         j = block_j*3 + idx[1][0]
-                        steps.append(f"In block ({block_i+1}, {block_j+1}) the only missing element is {missing} so row {i+1} column {j+1} must be {missing}.")
                         temp_board[i][j] = missing
+                        board_state = "\n".join([" ".join(map(str, row)) for row in temp_board])
+                        steps.append(f"In block ({block_i+1}, {block_j+1}) the only missing element is {missing} so row {i+1} column {j+1} must be {missing}.\nCurrent board:\n{board_state}")
                         found = True
                         break
                 if found:
@@ -109,14 +114,14 @@ def generate_teaching_data(num_samples=100_000, difficulty=0.1):
         # Format thinking text
         board_visual = "\n".join([" ".join(map(str, row)) for row in temp_board])
         thinking_text = (
-            "<thonk> I see a sudoku problem. Most of its cells are filled. So it should be easy to finish it.\n"
+            "<thinking> I see a sudoku problem. Most of its cells are filled. So it should be easy to finish it.\n"
             + "\n".join(steps) +
             "\nI think this completes the sudoku. Let me check:\n" + board_visual +
-            "\nLets see if it satisfies the sudoku rules. </thonk>"
+            "\nLets see if it satisfies the sudoku rules. </thinking>"
         )
         
         # Format final answer
-        formatted_solution = "".join([str(n) for row in solution for n in row])
+        formatted_solution = " ".join([str(n) for row in solution for n in row])
         answer_text = f"<ans>\n{formatted_solution}\n</ans>"
         
         dataset.append({
@@ -129,7 +134,7 @@ def generate_teaching_data(num_samples=100_000, difficulty=0.1):
 
 if __name__ == "__main__":
     # Generate and save dataset
-    dataset = generate_teaching_data(num_samples=100_000, difficulty=0.2)
+    dataset = generate_teaching_data(num_samples=10_000, difficulty=0.2)
 
     # Save in instruction format
     instruction_dataset = [{
