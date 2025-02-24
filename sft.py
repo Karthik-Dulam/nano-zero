@@ -106,7 +106,7 @@ def get_trainer(output_dir=OUTPUT_DIR):
     
     return pl.Trainer(
         max_epochs=NUM_EPOCHS,
-        devices=[1],
+        devices=[0],
         strategy="ddp",
         precision="bf16-mixed",
         gradient_clip_val=GRADIENT_CLIP,
