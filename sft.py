@@ -4,22 +4,53 @@ from datasets import load_dataset
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
+import argparse
 
 # Hyperparameters
-MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
-DATASET_PATH = "sudoku_sft_data.json"
-OUTPUT_DIR = "outputs/Qwen2.5-0.5B-SFT"
-BATCH_SIZE = 1
-GRADIENT_ACCUMULATION_STEPS = 1
-LEARNING_RATE = 1e-7
-NUM_EPOCHS = 3
-GRADIENT_CLIP = 1.0
-LOG_EVERY_N_STEPS = 30000
-VAL_CHECK_INTERVAL = 30000
-SAVE_EVERY_N_STEPS = 30000
+
+def get_args():
+    parser = argparse.ArgumentParser(description='Train a model using SFT')
+    
+    # Model and data parameters
+    parser.add_argument('--model_name', type=str, default="Qwen/Qwen2.5-0.5B-Instruct",
+                      help='Name or path of the base model')
+    parser.add_argument('--dataset_path', type=str, default="sudoku_sft_data.json",
+                      help='Path to the training dataset')
+    parser.add_argument('--output_dir', type=str, default="outputs/Qwen2.5-0.5B-SFT",
+                      help='Directory to save the model outputs')
+    
+    parser.add_argument('--batch_size', type=int, default=1,
+                      help='Training batch size')
+    parser.add_argument('--gradient_accumulation_steps', type=int, default=1,
+                      help='Number of steps for gradient accumulation')
+    parser.add_argument('--learning_rate', type=float, default=1e-7,
+                      help='Learning rate')
+    parser.add_argument('--num_epochs', type=int, default=3,
+                      help='Number of training epochs')
+    parser.add_argument('--gradient_clip', type=float, default=1.0,
+                      help='Gradient clipping value')
+    
+    parser.add_argument('--log_every_n_steps', type=int, default=30000,
+                      help='Log every N steps')
+    parser.add_argument('--val_check_interval', type=int, default=30000,
+                      help='Run validation every N steps')
+    parser.add_argument('--save_every_n_steps', type=int, default=30000,
+                      help='Save checkpoint every N steps')
+    
+    parser.add_argument('--devices', nargs='+', type=int, default=[0],
+                      help='List of GPU devices to use')
+    parser.add_argument('--no_checkpointing', action='store_false', dest='checkpointing',
+                      help='Disable gradient checkpointing')
+    parser.set_defaults(checkpointing=True)
+    
+    args = parser.parse_args()
+    return args
 
 def get_model_and_tokenizer(model_name=MODEL_NAME):
     model = AutoModelForCausalLM.from_pretrained(model_name)
+    if CHECKPOINTING:
+        model.gradient_checkpointing_enable()
+    model.config.use_cache = False
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     tokenizer.pad_token = tokenizer.eos_token
     return model, tokenizer
@@ -101,35 +132,53 @@ class SFTModel(pl.LightningModule):
                  sync_dist=True)
         return loss
 
-def get_trainer(output_dir=OUTPUT_DIR):
+def get_trainer(args):
     logger = TensorBoardLogger("tb_logs", name="Qwen2.5-0.5B-SFT")
     
     return pl.Trainer(
-        max_epochs=NUM_EPOCHS,
-        devices=[0],
+        max_epochs=args.num_epochs,
+        devices=args.devices,
         strategy="ddp",
         precision="bf16-mixed",
-        gradient_clip_val=GRADIENT_CLIP,
-        accumulate_grad_batches=GRADIENT_ACCUMULATION_STEPS,
-        log_every_n_steps=LOG_EVERY_N_STEPS,
-        val_check_interval=VAL_CHECK_INTERVAL,
+        gradient_clip_val=args.gradient_clip,
+        accumulate_grad_batches=args.gradient_accumulation_steps,
+        log_every_n_steps=args.log_every_n_steps,
+        val_check_interval=args.val_check_interval,
         check_val_every_n_epoch=None,
         logger=logger,
         callbacks=[
             pl.callbacks.ModelCheckpoint(
-                dirpath=output_dir,
+                dirpath=args.output_dir,
                 filename="sft-v{version}-{epoch}-{val_loss:.2f}",
                 save_top_k=3,
                 monitor="val_loss",
                 mode="min",
                 save_last=True,
-                every_n_train_steps=SAVE_EVERY_N_STEPS,
+                every_n_train_steps=args.save_every_n_steps,
                 auto_insert_metric_name=False
             )
         ]
     )
 
 if __name__ == '__main__':
+    # Get command line arguments
+    args = get_args()
+    
+    # Update global constants with parsed arguments
+    MODEL_NAME = args.model_name
+    DATASET_PATH = args.dataset_path
+    OUTPUT_DIR = args.output_dir
+    BATCH_SIZE = args.batch_size
+    GRADIENT_ACCUMULATION_STEPS = args.gradient_accumulation_steps
+    LEARNING_RATE = args.learning_rate
+    NUM_EPOCHS = args.num_epochs
+    GRADIENT_CLIP = args.gradient_clip
+    LOG_EVERY_N_STEPS = args.log_every_n_steps
+    VAL_CHECK_INTERVAL = args.val_check_interval
+    SAVE_EVERY_N_STEPS = args.save_every_n_steps
+    DEVICES = args.devices
+    CHECKPOINTING = args.checkpointing
+    
     # Initialize model and tokenizer
     model, tokenizer = get_model_and_tokenizer()
     
@@ -145,11 +194,11 @@ if __name__ == '__main__':
     ).with_format("torch")
     
     # Prepare dataloaders
-    train_loader, eval_loader = prepare_dataloaders(tokenized_datasets)
+    train_loader, eval_loader = prepare_dataloaders(tokenized_datasets, BATCH_SIZE)
     
     # Initialize the model and trainer
     sft_model = SFTModel(model, LEARNING_RATE)
-    trainer = get_trainer()
+    trainer = get_trainer(args)
     
     # Train the model
     trainer.fit(sft_model, train_loader, eval_loader)
